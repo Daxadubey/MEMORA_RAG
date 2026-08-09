@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-from retrieve import retrieve
+from .retrieve import retrieve
 
 
 # Load environment variables
@@ -76,22 +76,22 @@ def generate_answer(question, top_k=3):
 
 
 # Chat loop
-while True:
+if __name__ == "__main__":
+    while True:
+        question = input("\nAsk a question (or type 'exit'): ")
 
-    question = input("\nAsk a question (or type 'exit'): ")
+        if question.lower() == "exit":
+            break
 
-    if question.lower() == "exit":
-        break
+        answer, results = generate_answer(question)
 
-    answer, results = generate_answer(question)
+        print("\n===== ANSWER =====")
+        print(answer)
 
-    print("\n===== ANSWER =====")
-    print(answer)
+        print("\n===== SOURCES USED =====")
 
-    print("\n===== SOURCES USED =====")
-
-    for i, result in enumerate(results):
-        print(
-            f"Chunk {i + 1} | "
-            f"Similarity: {result['score']:.4f}"
-        )
+        for i, result in enumerate(results):
+            print(
+                f"Chunk {i + 1} | "
+                f"Similarity: {result['score']:.4f}"
+            )

@@ -40,14 +40,15 @@ def retrieve(query, top_k=3):
 
 
 # Test retrieval
-query = input("Ask a question: ")
+if __name__ == "__main__":
+    query = input("Ask a question: ")
 
-results = retrieve(query)
+    results = retrieve(query)
 
-print("\n===== RETRIEVED CHUNKS =====")
+    print("\n===== RETRIEVED CHUNKS =====")
 
-for i, result in enumerate(results):
-    print(f"\nResult {i + 1}")
-    print(f"Similarity Score: {result['score']:.4f}")
-    print("-" * 60)
-    print(result["chunk"])
+    for i, result in enumerate(results):
+        print(f"\nResult {i + 1}")
+        print(f"Similarity Score: {result['score']:.4f}")
+        print("-" * 60)
+        print(result["chunk"])
