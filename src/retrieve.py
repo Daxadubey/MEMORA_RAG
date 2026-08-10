@@ -1,31 +1,50 @@
 import faiss
 import pickle
+from pathlib import Path
 from sentence_transformers import SentenceTransformer
 
 
 # Load embedding model
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Load FAISS index
-index = faiss.read_index("data/faiss.index")
-
-# Load original chunks
-with open("data/chunks.pkl", "rb") as f:
-    chunks = pickle.load(f)
+DEFAULT_INDEX_PATH = Path("data/faiss.index")
+DEFAULT_CHUNKS_PATH = Path("data/chunks.pkl")
+UPLOAD_ROOT = Path("data/uploads")
 
 
-def retrieve(query, top_k=3):
+def load_index_and_chunks(upload_id=None):
+    if upload_id:
+        upload_dir = UPLOAD_ROOT / upload_id
+        index_path = upload_dir / "faiss.index"
+        chunks_path = upload_dir / "chunks.pkl"
+    else:
+        index_path = DEFAULT_INDEX_PATH
+        chunks_path = DEFAULT_CHUNKS_PATH
 
-    # Convert user question into embedding
+    if not index_path.exists() or not chunks_path.exists():
+        raise FileNotFoundError(
+            f"Index or chunks file not found for upload_id '{upload_id}'."
+            if upload_id else "Default FAISS index or chunks file not found."
+        )
+
+    index = faiss.read_index(str(index_path))
+    with open(chunks_path, "rb") as f:
+        chunks = pickle.load(f)
+
+    return index, chunks
+
+
+def retrieve(query, top_k=3, upload_id=None):
+
+    index, chunks = load_index_and_chunks(upload_id)
+
     query_embedding = embedding_model.encode(
         [query],
         convert_to_numpy=True
-    )
+    ).astype("float32")
 
-    # Normalize query vector
     faiss.normalize_L2(query_embedding)
 
-    # Search FAISS
     scores, indices = index.search(query_embedding, top_k)
 
     results = []

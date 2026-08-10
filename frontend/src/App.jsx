@@ -12,8 +12,19 @@ function App() {
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [uploadId, setUploadId] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("No document uploaded yet.");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [sources, setSources] = useState([]);
+  const [expandedSources, setExpandedSources] = useState({});
 
   const askQuestion = async (query = question) => {
+    if (!uploadId) {
+      setError("Please upload a document before asking a question.");
+      return;
+    }
+
     const trimmed = query.trim();
     if (!trimmed) {
       setError("Please enter a question or choose an example.");
@@ -23,6 +34,8 @@ function App() {
     setLoading(true);
     setError("");
     setAnswer("");
+    setSources([]);
+    setExpandedSources({});
 
     try {
       const response = await fetch("http://127.0.0.1:8000/ask", {
@@ -30,17 +43,21 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ question: trimmed, upload_id: uploadId }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get response from server");
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          errorBody?.detail || "Failed to get response from server",
+        );
       }
 
       const data = await response.json();
       setAnswer(data.answer || "No answer returned from server.");
+      setSources(Array.isArray(data.sources) ? data.sources : []);
     } catch (err) {
-      setError("Unable to connect to the Memora AI backend.");
+      setError(err.message || "Unable to connect to the Memora AI backend.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -48,14 +65,62 @@ function App() {
   };
 
   const handleSuggestion = (suggestion) => {
+    if (!uploadId) return;
     setQuestion(suggestion);
     askQuestion(suggestion);
   };
 
+  const uploadDocument = async () => {
+    if (!selectedFile) {
+      setError("Please select a document to upload.");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+    setAnswer("");
+    setSources([]);
+    setExpandedSources({});
+    setUploadStatus("Uploading document...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch("http://127.0.0.1:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Upload failed");
+      }
+
+      setUploadId(data.upload_id);
+      setUploadStatus("Document ready.");
+      setError("");
+    } catch (err) {
+      setError(err.message || "Unable to upload the document.");
+      setUploadStatus("Upload failed.");
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const renderAnswer = () => {
-    return answer.split("\n\n").map((block, index) => (
-      <p key={index}>{block}</p>
-    ));
+    return answer
+      .split("\n\n")
+      .map((block, index) => <p key={index}>{block}</p>);
+  };
+
+  const toggleSource = (index) => {
+    setExpandedSources((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
   };
 
   return (
@@ -99,8 +164,36 @@ function App() {
               <p>Ask a question based on your document knowledge base.</p>
             </div>
             <div className="status-pill">
-              {loading ? "Waiting for response..." : "Ready to ask"}
+              {uploading
+                ? "Uploading document..."
+                : uploadId
+                  ? "Document ready"
+                  : "Upload a document first"}
             </div>
+          </div>
+
+          <div className="upload-section">
+            <label className="file-input-label">
+              <span>Choose a document</span>
+              <input
+                type="file"
+                accept=".docx,.pdf,.txt"
+                onChange={(e) => {
+                  setSelectedFile(e.target.files?.[0] || null);
+                  setError("");
+                  setUploadStatus("Ready to upload.");
+                }}
+              />
+            </label>
+            <button
+              className="upload-button"
+              type="button"
+              onClick={uploadDocument}
+              disabled={uploading || loading}
+            >
+              {uploading ? "Uploading..." : "Upload Document"}
+            </button>
+            <div className="upload-status">{uploadStatus}</div>
           </div>
 
           <div className="suggestions-row">
@@ -110,7 +203,7 @@ function App() {
                 className="suggestion-button"
                 type="button"
                 onClick={() => handleSuggestion(example)}
-                disabled={loading}
+                disabled={loading || !uploadId}
               >
                 {example}
               </button>
@@ -133,7 +226,7 @@ function App() {
             <button
               className="primary-button"
               onClick={() => askQuestion()}
-              disabled={loading}
+              disabled={loading || !uploadId}
             >
               {loading ? "Thinking..." : "Ask Memora"}
             </button>
@@ -148,6 +241,59 @@ function App() {
                 <span>Based on your document memory</span>
               </div>
               <div className="answer-content">{renderAnswer()}</div>
+
+              {sources.length > 0 && (
+                <section className="sources-section">
+                  <div className="sources-header">
+                    <h4>Sources Used</h4>
+                    <span>
+                      {sources.length} source{sources.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="sources-list">
+                    {sources.map((source, index) => {
+                      const expanded = Boolean(expandedSources[index]);
+                      const similarity = Number(source.similarity) || 0;
+                      const percentage = Math.round(similarity * 100);
+                      const chunkText = source.chunk || "";
+                      const preview =
+                        chunkText.length > 160
+                          ? `${chunkText.slice(0, 160).trim()}…`
+                          : chunkText;
+                      const hasMore = chunkText.length > 160;
+
+                      return (
+                        <div key={index} className="source-card">
+                          <div className="source-card-header">
+                            <div>
+                              <span className="source-label">
+                                Source {index + 1}
+                              </span>
+                              <span className="source-score">
+                                {percentage}% match
+                              </span>
+                            </div>
+                            {hasMore && (
+                              <button
+                                className="source-toggle"
+                                type="button"
+                                onClick={() => toggleSource(index)}
+                              >
+                                {expanded ? "Show less" : "Show more"}
+                              </button>
+                            )}
+                          </div>
+                          <p
+                            className={`source-text ${expanded ? "expanded" : "collapsed"}`}
+                          >
+                            {expanded ? chunkText : preview}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
             </article>
           )}
         </section>

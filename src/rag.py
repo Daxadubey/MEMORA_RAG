@@ -35,10 +35,10 @@ Rules:
 """
 
 
-def generate_answer(question, top_k=3):
+def generate_answer(question, top_k=3, upload_id=None):
 
     # Step 1: Retrieve relevant chunks
-    results = retrieve(question, top_k=top_k)
+    results = retrieve(question, top_k=top_k, upload_id=upload_id)
 
     # Step 2: Prepare context
     context_parts = []
@@ -72,7 +72,15 @@ def generate_answer(question, top_k=3):
         contents=prompt
     )
 
-    return response.text, results
+    sources = [
+        {
+            "chunk": result["chunk"],
+            "similarity": result["score"],
+        }
+        for result in results
+    ]
+
+    return response.text, sources
 
 
 # Chat loop
@@ -83,15 +91,15 @@ if __name__ == "__main__":
         if question.lower() == "exit":
             break
 
-        answer, results = generate_answer(question)
+        answer, sources = generate_answer(question)
 
         print("\n===== ANSWER =====")
         print(answer)
 
         print("\n===== SOURCES USED =====")
 
-        for i, result in enumerate(results):
+        for i, source in enumerate(sources):
             print(
                 f"Chunk {i + 1} | "
-                f"Similarity: {result['score']:.4f}"
+                f"Similarity: {source['similarity']:.4f}"
             )

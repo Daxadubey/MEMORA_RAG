@@ -1,5 +1,6 @@
 ﻿import os
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -23,8 +24,10 @@ app.add_middleware(
 
 class QuestionRequest(BaseModel):
     question: str
+    upload_id: Optional[str] = None
 
 ALLOWED_EXTENSIONS = {".docx", ".pdf", ".txt"}
+UPLOAD_ROOT = Path("data/uploads")
 
 @app.get("/")
 def root():
@@ -62,12 +65,24 @@ async def upload_document(file: UploadFile = File(...)):
             "upload_id": upload_id,
             "filename": filename,
             "chunks_count": result["chunks_count"],
-            "index_path": str(upload_dir / "faiss.index"),
-            "chunks_path": str(upload_dir / "chunks.pkl"),
         },
     )
 
 @app.post("/ask")
 def ask_question(request: QuestionRequest):
-    answer, results = generate_answer(request.question)
-    return {"answer": answer}
+    upload_id = request.upload_id.strip() if request.upload_id else None
+    if upload_id:
+        upload_dir = UPLOAD_ROOT / upload_id
+        if not upload_dir.exists() or not upload_dir.is_dir():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Upload directory not found for upload_id '{upload_id}'.",
+            )
+        if not (upload_dir / "faiss.index").exists() or not (upload_dir / "chunks.pkl").exists():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Index or chunks file missing for upload_id '{upload_id}'.",
+            )
+
+    answer, sources = generate_answer(request.question, upload_id=upload_id)
+    return {"answer": answer, "sources": sources}

@@ -175,6 +175,50 @@ button {
   font-weight: 600;
 }
 
+.upload-section {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.file-input-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 18px;
+  gap: 12px;
+  border-radius: 18px;
+  background: #eef2ff;
+  color: #1f2937;
+  cursor: pointer;
+  border: 1px solid #dbeafe;
+}
+
+.file-input-label input {
+  display: none;
+}
+
+.upload-button {
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: #4338ca;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.upload-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.upload-status {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
 .suggestions-row {
   display: flex;
   flex-wrap: wrap;
@@ -291,6 +335,93 @@ button {
 
 .answer-content p:last-child {
   margin-bottom: 0;
+}
+
+.sources-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sources-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.sources-header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sources-header span {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.sources-list {
+  display: grid;
+  gap: 14px;
+}
+
+.source-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px;
+  background: #ffffff;
+}
+
+.source-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.source-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.source-score {
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.source-toggle {
+  font-size: 0.88rem;
+  color: #4338ca;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.source-text {
+  margin: 0;
+  color: #334155;
+  line-height: 1.85;
+  overflow: hidden;
+}
+
+.source-text.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.source-text.expanded {
+  display: block;
 }
 
 @media (max-width: 768px) {
