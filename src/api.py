@@ -16,12 +16,13 @@ app = FastAPI(title="Memora AI API")
 # Allow React frontend to communicate with FastAPI
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 class QuestionRequest(BaseModel):
     question: str
     upload_id: Optional[str] = None
